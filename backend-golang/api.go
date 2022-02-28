@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -85,12 +86,13 @@ func ServeSuggest(ctx *gin.Context) {
 	})
 }
 
-func RunServer(port int) {
+func RunServer(port int, static string) {
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	router.POST(`/api/suggest`, ServeSuggest)
 	router.POST(`/api/parse`, ServeParse)
+	router.StaticFS("/", http.Dir(static))
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", port),
@@ -98,6 +100,7 @@ func RunServer(port int) {
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
 	}
+	log.Printf("Running on %s, static: %s", srv.Addr, static)
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			log.Println("Close with error:", err)
@@ -120,5 +123,8 @@ func RunServer(port int) {
 }
 
 func main() {
-	RunServer(5678)
+	port := flag.Int("port", 5678, "port")
+	static := flag.String("static", "./static", "static")
+	flag.Parse()
+	RunServer(*port, *static)
 }
