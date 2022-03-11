@@ -72,67 +72,75 @@ def debug(func):
     return inner
 
 
+precedence = (
+    ('left', 'VBAR'),
+    ('left', 'AMPER'),
+    ('right', 'NOTEQUAL'),
+    ('right', 'EQUAL'),
+)
+
+
 @debug
-def p_expression_term(p):
+def p_term(p):
     """
-    expression : term
+    term : expr
     """
     p[0] = p[1]
 
 
 @debug
-def p_term_vbar(p):
+def p_factor(p):
     """
-    term : term VBAR factor
-    """
-    p[0] = LogicalExpr(p[1], p[3], '|')
-
-
-@debug
-def p_term_amper(p):
-    """
-    term : term AMPER factor
-    """
-    p[0] = LogicalExpr(p[1], p[3], '&')
-
-
-@debug
-def p_term_factor(p):
-    """
-    term : factor
-    """
-    p[0] = p[1]
-
-
-@debug
-def p_factor_num(p):
-    """
-    factor : NAME EQUAL STRING
     factor : NAME
+    factor : NAME EQUAL STRING
     """
     if len(p) == 2:
         p[0] = SuggestFactor(p[1], p.slice[1].start, p.slice[1].end)
     elif len(p) == 4:
-        if p[3][0] == p[3][-1] == '"':
+        if p[3][0] == p[3][-1] in ('"', "'"):
             p[0] = MatchFactor(p[1], p[3][1:-1])
         else:
             raise ParseError("Invalid string: {!r}".format(p[3]))
 
 
 @debug
-def p_factor_not_expr(p):
+def p_expr_vbar(p):
     """
-    factor : NOTEQUAL factor
+    expr : expr VBAR expr
+    """
+    p[0] = LogicalExpr(p[1], p[3], '|')
+
+
+@debug
+def p_expr_amper(p):
+    """
+    expr : expr AMPER expr
+    """
+    p[0] = LogicalExpr(p[1], p[3], '&')
+
+
+@debug
+def p_expr_not(p):
+    """
+    expr : NOTEQUAL expr
     """
     p[0] = NotExpr(p[2])
 
 
 @debug
-def p_factor_expr(p):
+def p_expr_brace(p):
     """
-    factor : LBRACE expression RBRACE
+    expr : LBRACE expr RBRACE
     """
     p[0] = p[2]
+
+
+@debug
+def p_expr_factor(p):
+    """
+    expr : factor
+    """
+    p[0] = p[1]
 
 
 class ParseError(Exception):
@@ -156,5 +164,8 @@ def extract_suggest(result):
 
 
 # Build the parser
-parser = yacc.yacc(start='expression')
+parser = yacc.yacc(start='term')
 parse = partial(parser.parse, lexer=lexer)
+
+if __name__ == '__main__':
+    print(parse("a='b' || c='d' && e='f'"))
