@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
-from parser.lex import lexer, tokens
+import sys
+import logging
+import ast
+from utils.adv_search_parser.lex import lexer, tokens
 import ply.yacc as yacc
 from functools import wraps, partial
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class Ast(object):
@@ -56,17 +62,17 @@ class LogicalExpr(AstExpr):
 def debug(func):
     @wraps(func)
     def inner(p):
-        # logging.info("Step Into " + func.__name__)
+        logger.debug('{:-^30}'.format('Step Into ' + func.__name__))
         verbose = ''
         for i, c in enumerate(p.slice):
             if i == 0:
                 verbose += c.type + ' = '
             else:
                 verbose += c.type + ' '
-        # logging.info(verbose)
+        logger.debug(verbose.strip())
         rv = func(p)
-        # logging.info("Result: {}".format(p[0]))
-        # logging.info("Step Out " + func.__name__)
+        logger.debug("Result: {}".format(p[0]))
+        logger.debug('{:-^30}'.format('Step Out ' + func.__name__))
         return rv
 
     return inner
@@ -98,7 +104,7 @@ def p_factor(p):
         p[0] = SuggestFactor(p[1], p.slice[1].start, p.slice[1].end)
     elif len(p) == 4:
         if p[3][0] == p[3][-1] in ('"', "'"):
-            p[0] = MatchFactor(p[1], p[3][1:-1])
+            p[0] = MatchFactor(p[1], ast.literal_eval(p[3]))
         else:
             raise ParseError("Invalid string: {!r}".format(p[3]))
 
@@ -168,4 +174,5 @@ parser = yacc.yacc(start='term')
 parse = partial(parser.parse, lexer=lexer)
 
 if __name__ == '__main__':
-    print(parse("a='b' || c='d' && e='f'"))
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.info(f"""AST: {parse("!a888 || c='d' && e='f'")}""")

@@ -50,6 +50,8 @@ def tokenize(text: bytes):
             token_type = std_tokenize.RBRACE
         elif string == '=':
             token_type = std_tokenize.EQUAL
+        elif string == '==':
+            token_type = std_tokenize.EQUAL
         elif token_type != std_tokenize.STRING:
             token_type = std_tokenize.NAME
 
@@ -76,13 +78,3 @@ class Lexer(object):
 
 
 lexer = Lexer()
-
-
-def example():
-    test_text = "".encode('utf8')
-    for token in tokenize(test_text):
-        print(token)
-
-
-if __name__ == '__main__':
-    example()
