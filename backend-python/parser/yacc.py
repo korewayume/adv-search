@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import sys
 import logging
+import tokenize
 import ast
+from functools import wraps
 from utils.adv_search_parser.lex import lexer, tokens
 import ply.yacc as yacc
-from functools import wraps, partial
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -149,13 +150,33 @@ def p_expr_factor(p):
     p[0] = p[1]
 
 
-class ParseError(Exception):
+class ParseErrorWrapper(Exception):
     pass
+
+
+class ParseError(Exception):
+    def __init__(self, error):
+        self.error = error
+
+    def __str__(self):
+        if isinstance(self.error, ParseErrorWrapper):
+            try:
+                exc = self.error.args[0]
+                cursor = ' ' * exc.start + '^'
+                if exc.end - exc.start > 2:
+                    cursor = cursor + ' ' * (exc.end - exc.start - 2) + '^'
+                return f"语法错误:\n{exc.line}\n{cursor}"
+            except:  # pylint: disable=bare-except
+                return f"语法错误: {self.error}"
+        elif isinstance(self.error, (tokenize.TokenError, tokenize.StopTokenizing, str)):
+            return f"语法错误: {self.error}"
+        else:
+            return "语法错误"
 
 
 # Error rule for syntax errors
 def p_error(error):
-    raise ParseError(error)
+    raise ParseErrorWrapper(error)
 
 
 def extract_suggest(result):
@@ -171,8 +192,15 @@ def extract_suggest(result):
 
 # Build the parser
 parser = yacc.yacc(start='term')
-parse = partial(parser.parse, lexer=lexer)
+
+
+def parse(text):
+    try:
+        return parser.parse(input=text, lexer=lexer)
+    except Exception as exc:  # pylint: disable=broad-except
+        raise ParseError(exc)
+
 
 if __name__ == '__main__':
     logger.addHandler(logging.StreamHandler(sys.stdout))
-    logger.info(f"""AST: {parse("!a888 || c='d' && e='f'")}""")
+    logger.info(f"""AST: {parse("!a='b' || c='d' && e='f'")}""")

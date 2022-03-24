@@ -51,6 +51,8 @@ func (x *AdvLex) Lex(context *AdvSymType) int {
 		return IDENT
 	case token.ASSIGN:
 		return int('=')
+	case token.EQL:
+		return int('=')
 	default:
 		panic(fmt.Sprintf("SyntaxError: (position=%+v, token=%+v, literal=%+v)", x.fset.Position(pos), tok.String(), literal))
 	}
