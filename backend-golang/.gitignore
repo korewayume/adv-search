@@ -1,3 +1,5 @@
-adv_parse/adv_parser.go
-adv_parse/adv_parser.output
-adv-search
+/adv_parse/adv_parser.go
+/adv_parse/adv_parser.output
+/advsearch/adv_search.go
+/advsearch/adv_search.output
+/adv-search
